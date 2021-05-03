@@ -1,5 +1,9 @@
 #![deny(clippy::all, clippy::cargo)]
 
+mod sources;
+
+use clap::Clap;
+
 fn main() {
-    println!("Hello, world!");
+    sources::Subcommand::parse().run();
 }
