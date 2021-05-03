@@ -1,0 +1,90 @@
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+name: ci
+
+jobs:
+  dev:
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [default, nightly]
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.channel == 'nightly' }}
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+
+      - name: install rustup
+        if: runner.os == 'macOS'
+        run: |
+          brew uninstall --force rustup
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- --default-toolchain none -y
+
+      - name: update rustup
+        run: rustup self update
+
+      - name: configure non-default toolchain
+        if: matrix.channel != 'default'
+        run: |
+          cat rust-toolchain.toml | grep -v 'channel =' > rust-toolchain.toml.temp
+          echo 'channel = "${{ matrix.channel }}"' >> rust-toolchain.toml.temp
+          rm rust-toolchain.toml
+          mv rust-toolchain.toml.temp rust-toolchain.toml
+
+      - name: restore pinned toolchain cache
+        if: matrix.channel != 'nightly'
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.rustup/toolchains
+          key: rustup-${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}
+
+      - name: get nightly toolchain cache key
+        id: nightly-cache-key
+        if: matrix.channel == 'nightly'
+        run: |
+          echo "::set-output name=date::$(curl -sSf https://static.rust-lang.org/dist/channel-rust-nightly.toml | grep "date =" | cut -d'"' -f2)"
+        shell: bash
+
+      - name: restore nightly toolchain cache
+        if: matrix.channel == 'nightly'
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.rustup/toolchains
+          key: rustup-${{ runner.os }}-nightly-${{ steps.nightly-cache-key.outputs.date }}
+
+      - name: setup toolchain
+        run: rustup show
+
+      - name: restore build cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock', 'rust-toolchain.toml') }}
+
+      - name: fetch dependencies
+        run: cargo fetch --locked
+
+      - name: build package
+        run: cargo build --frozen --all-targets
+
+      - name: rustfmt
+        run: cargo fmt -- --check
+        continue-on-error: ${{ matrix.channel == 'nightly' }}
+
+      - name: clippy
+        run: cargo clippy --frozen
+        continue-on-error: ${{ matrix.channel == 'nightly' }}
+
+      - name: run tests
+        run: cargo test --frozen
