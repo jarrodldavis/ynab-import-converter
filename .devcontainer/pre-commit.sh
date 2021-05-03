@@ -10,9 +10,9 @@ echo '==> Running `cargo check`...'
 cargo check --all-targets --frozen
 
 echo '==> Running `cargo fmt`...'
-cargo fmt --all -- --check
+cargo fmt -- --check
 
 echo '==> Running `cargo clippy`...'
-cargo clippy
+cargo clippy --frozen
 
 echo '>>> Pre-commit hook complete!'

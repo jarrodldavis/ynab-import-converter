@@ -1,7 +1,16 @@
 [package]
 name = "ynab-import-converter"
 version = "0.1.0"
+authors = [ "Jarrod Davis <developer@jarrodldavis.com>" ]
 edition = "2018"
+description = "Convert CSV exports from financial institutions into YNAB's CSV format"
+readme = "README.md"
+homepage = "https://github.com/jarrodldavis/ynab-import-converter#readme"
+repository = "https://github.com/jarrodldavis/ynab-import-converter"
+license = "MIT"
+keywords = [ "utility", "tool", "command", "finance", "csv" ]
+categories = [ "command-line-utilities" ]
+include = [ "src/**/*.rs", "LICENSE", "README.md" ]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
